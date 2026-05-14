@@ -1,0 +1,134 @@
+name: bump
+
+# Bumps Formula/cto.rb to a new cto-cli release version. Triggered:
+#  - automatically: by a workflow on Engine-Labs/cto-cli that fires on
+#    `release.published` (i.e. when a human publishes the draft release
+#    that the cto-monorepo release pipeline created).
+#  - manually: via `gh workflow run bump.yml -f version=X.Y.Z` for backfill
+#    or recovery.
+#
+# Pushes via a dedicated GitHub App's token (rather than GITHUB_TOKEN) so
+# the resulting commit re-triggers the brew-test workflow for validation.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to bump to (no leading 'v', e.g. 5.71.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Version '$VERSION' is not clean semver (X.Y.Z)" >&2
+            exit 1
+          fi
+
+      - name: Generate App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ vars.BREW_TAP_APP_ID }}
+          private-key: ${{ secrets.BREW_TAP_APP_PRIVATE_KEY }}
+          owner: Engine-Labs
+          repositories: homebrew-cto
+
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Fetch SHA256SUMS
+        id: sums
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          curl -fsSL \
+            "https://github.com/Engine-Labs/cto-cli/releases/download/v${VERSION}/SHA256SUMS" \
+            -o /tmp/SHA256SUMS
+          cat /tmp/SHA256SUMS
+
+          for var in darwin-arm64 darwin-x64 linux-arm64 linux-x64; do
+            sha="$(grep " cto-${var}\$" /tmp/SHA256SUMS | awk '{print $1}')"
+            if [ -z "$sha" ] || [ "${#sha}" != "64" ]; then
+              echo "Failed to parse sha256 for cto-${var}" >&2
+              exit 1
+            fi
+            key="${var//-/_}"
+            echo "${key}=${sha}" >> "$GITHUB_OUTPUT"
+          done
+
+      - name: Render Formula/cto.rb
+        env:
+          VERSION: ${{ inputs.version }}
+          DARWIN_ARM64: ${{ steps.sums.outputs.darwin_arm64 }}
+          DARWIN_X64: ${{ steps.sums.outputs.darwin_x64 }}
+          LINUX_ARM64: ${{ steps.sums.outputs.linux_arm64 }}
+          LINUX_X64: ${{ steps.sums.outputs.linux_x64 }}
+        run: |
+          cat > Formula/cto.rb <<EOF
+          class Cto < Formula
+            desc "AI-powered engineering agent CLI for cto.new"
+            homepage "https://cto.new"
+            version "${VERSION}"
+            license :cannot_represent
+
+            on_macos do
+              on_arm do
+                url "https://github.com/Engine-Labs/cto-cli/releases/download/v${VERSION}/cto-darwin-arm64"
+                sha256 "${DARWIN_ARM64}"
+              end
+              on_intel do
+                url "https://github.com/Engine-Labs/cto-cli/releases/download/v${VERSION}/cto-darwin-x64"
+                sha256 "${DARWIN_X64}"
+              end
+            end
+
+            on_linux do
+              on_arm do
+                url "https://github.com/Engine-Labs/cto-cli/releases/download/v${VERSION}/cto-linux-arm64"
+                sha256 "${LINUX_ARM64}"
+              end
+              on_intel do
+                url "https://github.com/Engine-Labs/cto-cli/releases/download/v${VERSION}/cto-linux-x64"
+                sha256 "${LINUX_X64}"
+              end
+            end
+
+            def install
+              bin.install Dir["cto-*"].first => "cto"
+            end
+
+            test do
+              assert_match version.to_s, shell_output("#{bin}/cto --version")
+            end
+          end
+          EOF
+
+          echo "--- Rendered Formula/cto.rb ---"
+          cat Formula/cto.rb
+
+      - name: Commit + push
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          git config user.name "engine-labs-homebrew-cto[bot]"
+          git config user.email "engine-labs-homebrew-cto[bot]@users.noreply.github.com"
+
+          if git diff --quiet Formula/cto.rb; then
+            echo "Formula already at v${VERSION}; nothing to do."
+            exit 0
+          fi
+
+          git add Formula/cto.rb
+          git commit -m "feat: bump cto to v${VERSION}"
+          git push
