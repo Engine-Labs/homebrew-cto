@@ -9,6 +9,13 @@ on:
 permissions:
   contents: read
 
+# Newer pushes supersede older runs. Without this, every Formula bump
+# leaves a stale macos-13 (Intel) job queued — Intel runners are scarce
+# and queue org-wide, so they'd pile up for hours otherwise.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   brew-test:
     strategy:
@@ -16,6 +23,9 @@ jobs:
       matrix:
         os: [macos-15, macos-13, ubuntu-latest]
     runs-on: ${{ matrix.os }}
+    # brew-test should finish in well under 10 min; 30 caps a hung curl
+    # or stuck install (default is 360 — too generous for this).
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - name: Set up Homebrew
