@@ -1,0 +1,35 @@
+name: brew test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  brew-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, macos-13, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Homebrew
+        id: brew
+        uses: Homebrew/actions/setup-homebrew@master
+      - name: Tap from local checkout
+        run: brew tap engine-labs/cto "$PWD"
+      - name: brew style
+        run: brew style engine-labs/cto/cto
+      - name: brew audit
+        run: brew audit --strict engine-labs/cto/cto
+      - name: brew install
+        run: brew install engine-labs/cto/cto
+      - name: brew test
+        run: brew test engine-labs/cto/cto
+      - name: cto --version
+        run: cto --version
