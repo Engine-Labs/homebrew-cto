@@ -14,15 +14,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-14, macos-13]
+        os: [macos-15, macos-14]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up Homebrew
         id: brew
         uses: Homebrew/actions/setup-homebrew@master
-      - name: Tap from local checkout
-        run: brew tap engine-labs/cto "$PWD"
+      # setup-homebrew auto-taps this repo as engine-labs/cto, symlinked to
+      # the workflow checkout — so PR commits are tested by formula path.
       - name: brew style
         run: brew style engine-labs/cto/cto
       - name: brew audit
