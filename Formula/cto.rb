@@ -1,28 +1,28 @@
 class Cto < Formula
   desc "AI-powered engineering agent CLI for cto.new"
   homepage "https://cto.new"
-  version "5.72.0"
+  version "5.73.0"
   license :cannot_represent
 
   on_macos do
     on_arm do
-      url "https://github.com/Engine-Labs/cto-cli/releases/download/v5.72.0/cto-darwin-arm64"
-      sha256 "4d4318f8890cef7793abd9c5d25be0a7850d99d4388cded4718392753606ed8b"
+      url "https://github.com/Engine-Labs/cto-cli/releases/download/v5.73.0/cto-darwin-arm64"
+      sha256 "90253a1117b2b61b41635b7ad4b09165896875338941b2ad23290405ee373cd9"
     end
     on_intel do
-      url "https://github.com/Engine-Labs/cto-cli/releases/download/v5.72.0/cto-darwin-x64"
-      sha256 "2d8ff3bc3d84dcc53a1c7c042bb03934c19dec372aaf6d0fcb6a61b79f06dc88"
+      url "https://github.com/Engine-Labs/cto-cli/releases/download/v5.73.0/cto-darwin-x64"
+      sha256 "d0bf15c3af6dcbb30a0853929ce58a6eb55ec87e6572077e3a64b091a0ce63a3"
     end
   end
 
   on_linux do
     on_arm do
-      url "https://github.com/Engine-Labs/cto-cli/releases/download/v5.72.0/cto-linux-arm64"
-      sha256 "2f8947df8fe3ad319b8b5af3f896b6f81915124fce2cf0ffca529eb8c6d1b705"
+      url "https://github.com/Engine-Labs/cto-cli/releases/download/v5.73.0/cto-linux-arm64"
+      sha256 "04b55d1782f3d9c2abb915140471d9ec341b722817e8fdcfc72bc18f4cbed480"
     end
     on_intel do
-      url "https://github.com/Engine-Labs/cto-cli/releases/download/v5.72.0/cto-linux-x64"
-      sha256 "797198eedc62424371897b75ea09d4589dce68beca62a6f17497ce135d4db61e"
+      url "https://github.com/Engine-Labs/cto-cli/releases/download/v5.73.0/cto-linux-x64"
+      sha256 "2d8982c12bc6f2084ec233299d9a72b365ea7b16ec2491c1c83e8962f4585c57"
     end
   end
 
