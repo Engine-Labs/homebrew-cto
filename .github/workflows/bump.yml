@@ -108,6 +108,20 @@ jobs:
               bin.install Dir["cto-*"].first => "cto"
             end
 
+            def caveats
+              <<~EOS
+                cto stores credentials, cache, and theme under ~/.cto, plus a TUI
+                plugin entry in ~/.config/opencode/tui.json. \`brew uninstall cto\`
+                leaves both behind (Homebrew Formula uninstall hooks don't reach
+                user dotfiles). To clean those before removing the binary:
+
+                  cto uninstall && brew uninstall cto
+
+                \`cto uninstall\` detects the brew-managed binary and skips it, so
+                the order above is safe.
+              EOS
+            end
+
             test do
               assert_match version.to_s, shell_output("#{bin}/cto --version")
             end
